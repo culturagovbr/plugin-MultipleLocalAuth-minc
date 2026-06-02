@@ -24,8 +24,18 @@ class GovBrStrategy extends OpauthStrategy
 	/**
 	 * Auth request
 	 */
+	private function applySubsiteConfig(): void
+	{
+		$liveConfig = \MapasCulturais\App::i()->config['auth.config']['strategies']['govbr'] ?? [];
+		foreach ($liveConfig as $key => $value) {
+			$this->strategy[$key] = $value;
+		}
+	}
+
 	public function request()
 	{
+		$this->applySubsiteConfig();
+
 		$_SESSION['govbr-state'] = md5($this->strategy['state_salt'].time());
 		$_SESSION['last_auth_provider'] = get_class($this);
 
@@ -52,6 +62,8 @@ class GovBrStrategy extends OpauthStrategy
 	 */
 	public function oauth2callback()
 	{
+		$this->applySubsiteConfig();
+
 		$app = App::i();
 
 		if ((array_key_exists('code', $_GET) && !empty($_GET['code'])) && (array_key_exists("state", $_GET) && $_GET['state'] == $_SESSION['govbr-state'])) {
