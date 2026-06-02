@@ -95,7 +95,7 @@ class Provider extends \MapasCulturais\AuthProvider {
                     'app_secret' => env('AUTH_TWITTER_APP_SECRET', null),
                 ],
                 'govbr' => [
-                    'visible' => env('AUTH_GOV_BR_ID', false),
+                    'visible' => env('AUTH_GOV_BR_VISIBLE', false),
                     'response_type' => env('AUTH_GOV_BR_RESPONSE_TYPE', 'code'),
                     'client_id' => env('AUTH_GOV_BR_CLIENT_ID', null),
                     'client_secret' => env('AUTH_GOV_BR_SECRET', null),
@@ -1445,6 +1445,7 @@ class Provider extends \MapasCulturais\AuthProvider {
     public function _cleanUserSession() {
         unset($_SESSION['opauth']);
         unset($_SESSION['multipleLocalUserId']);
+        unset($_SESSION['last_auth_provider']);
     }
     
     public function _requireAuthentication() {
