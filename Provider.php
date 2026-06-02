@@ -1444,7 +1444,6 @@ class Provider extends \MapasCulturais\AuthProvider {
     public function _cleanUserSession() {
         unset($_SESSION['opauth']);
         unset($_SESSION['multipleLocalUserId']);
-        unset($_SESSION['last_auth_provider']);
     }
     
     public function _requireAuthentication() {
