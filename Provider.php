@@ -151,7 +151,9 @@ class Provider extends \MapasCulturais\AuthProvider {
 
         $app->hook('auth.logout:after', function () {
             if (isset($_SESSION['last_auth_provider']) && method_exists($_SESSION['last_auth_provider'], 'logout')) {
-                ($_SESSION['last_auth_provider'])::logout();
+                $provider = $_SESSION['last_auth_provider'];
+                unset($_SESSION['last_auth_provider']);
+                $provider::logout();
             }
         });
 
