@@ -24,14 +24,6 @@ class GovBrStrategy extends OpauthStrategy
 	/**
 	 * Auth request
 	 */
-	private function applySubsiteConfig(): void
-	{
-		$liveConfig = \MapasCulturais\App::i()->config['auth.config']['strategies']['govbr'] ?? [];
-		foreach ($liveConfig as $key => $value) {
-			$this->strategy[$key] = $value;
-		}
-	}
-
 	public function request()
 	{
 		$this->applySubsiteConfig();
@@ -336,4 +328,12 @@ class GovBrStrategy extends OpauthStrategy
         }
         return $maskared;
     }
+
+	private function applySubsiteConfig(): void
+	{
+		$liveConfig = \MapasCulturais\App::i()->config['auth.config']['strategies']['govbr'] ?? [];
+		foreach ($liveConfig as $key => $value) {
+			$this->strategy[$key] = $value;
+		}
+	}
 }
