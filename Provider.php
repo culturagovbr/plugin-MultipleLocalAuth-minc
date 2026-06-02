@@ -296,7 +296,11 @@ class Provider extends \MapasCulturais\AuthProvider {
             $providers = implode('|', array_keys($config['strategies']));
 
             $app->hook("<<GET|POST>>(auth.<<{$providers}>>)", function () use($opauth, $app){
-                $opauth->env['Strategy'] = $app->config['auth.config']['strategies'];
+                foreach ($app->config['auth.config']['strategies'] as $key => $themeConfig) {
+                    if (isset($opauth->env['Strategy'][$key])) {
+                        $opauth->env['Strategy'][$key] = array_merge($opauth->env['Strategy'][$key], $themeConfig);
+                    }
+                }
                 $opauth->run();
             });
         }
@@ -1342,9 +1346,9 @@ class Provider extends \MapasCulturais\AuthProvider {
             * is sent through GET or POST.
             */
             if (empty($response['auth']) || empty($response['timestamp']) || empty($response['signature']) || empty($response['auth']['provider']) || empty($response['auth']['uid'])) {
-                $app->flash('auth error', 'Invalid auth response: Missing key auth response components.');
+                // $app->log->debug('Invalid auth response: Missing key auth response components.');
             } elseif (!$this->opauth->validate(sha1(print_r($response['auth'], true)), $response['timestamp'], $response['signature'], $reason)) {
-                $app->flash('auth error', "Invalid auth response: {$reason}");
+                // $app->log->debug("Invalid auth response: {$reason}");
             } else {
                 $valid = true;
             }
