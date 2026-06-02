@@ -149,6 +149,12 @@ class Provider extends \MapasCulturais\AuthProvider {
         $app = App::i();
         $config = $this->_config;
 
+        $app->hook('auth.logout:after', function () {
+            if (isset($_SESSION['last_auth_provider']) && method_exists($_SESSION['last_auth_provider'], 'logout')) {
+                ($_SESSION['last_auth_provider'])::logout();
+            }
+        });
+
         $app->hook('GET(auth.passwordvalidationinfos)', function () use($config){
             
             $passwordRules = array(
