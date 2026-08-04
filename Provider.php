@@ -95,7 +95,7 @@ class Provider extends \MapasCulturais\AuthProvider {
                     'app_secret' => env('AUTH_TWITTER_APP_SECRET', null),
                 ],
                 'govbr' => [
-                    'visible' => env('AUTH_GOV_BR_ID', false),
+                    'visible' => env('AUTH_GOV_BR_VISIBLE', false),
                     'response_type' => env('AUTH_GOV_BR_RESPONSE_TYPE', 'code'),
                     'client_id' => env('AUTH_GOV_BR_CLIENT_ID', null),
                     'client_secret' => env('AUTH_GOV_BR_SECRET', null),
@@ -111,7 +111,8 @@ class Provider extends \MapasCulturais\AuthProvider {
                     'state_salt' => env('AUTH_GOV_BR_STATE_SALT', null),
                     'applySealId' => env('AUTH_GOV_BR_APPLY_SEAL_ID', null),
                     'menssagem_authenticated' => env('AUTH_GOV_BR_MENSSAGEM_AUTHENTICATED','Usuário já se autenticou pelo GovBr'),
-                    'dic_agent_fields_update' => env('AUTH_GOV_BR_DICT_AGENT_FIELDS_UPDATE','[]')
+                    'dic_agent_fields_update' => env('AUTH_GOV_BR_DICT_AGENT_FIELDS_UPDATE','[]'),
+                    'url_logout' => env('AUTH_GOV_BR_URL_LOGOUT', 'https://sso.staging.acesso.gov.br/logout'),
                 ],
                 'decidim' => [
                     'visible' => env('AUTH_DECIDIM_CLIENT_ID', false),
@@ -147,6 +148,14 @@ class Provider extends \MapasCulturais\AuthProvider {
 
         $app = App::i();
         $config = $this->_config;
+
+        $app->hook('auth.logout:after', function () {
+            if (isset($_SESSION['last_auth_provider']) && method_exists($_SESSION['last_auth_provider'], 'logout')) {
+                $provider = $_SESSION['last_auth_provider'];
+                unset($_SESSION['last_auth_provider']);
+                $provider::logout();
+            }
+        });
 
         $app->hook('GET(auth.passwordvalidationinfos)', function () use($config){
             
@@ -288,7 +297,7 @@ class Provider extends \MapasCulturais\AuthProvider {
         if($this->usingSocialLogin()){
             $providers = implode('|', array_keys($config['strategies']));
 
-            $app->hook("<<GET|POST>>(auth.<<{$providers}>>)", function () use($opauth, $config){
+            $app->hook("<<GET|POST>>(auth.<<{$providers}>>)", function () use($opauth){
                 $opauth->run();
             });
         }
@@ -1334,9 +1343,9 @@ class Provider extends \MapasCulturais\AuthProvider {
             * is sent through GET or POST.
             */
             if (empty($response['auth']) || empty($response['timestamp']) || empty($response['signature']) || empty($response['auth']['provider']) || empty($response['auth']['uid'])) {
-                $app->flash('auth error', 'Invalid auth response: Missing key auth response components.');
+                // $app->log->debug('Invalid auth response: Missing key auth response components.');
             } elseif (!$this->opauth->validate(sha1(print_r($response['auth'], true)), $response['timestamp'], $response['signature'], $reason)) {
-                $app->flash('auth error', "Invalid auth response: {$reason}");
+                // $app->log->debug("Invalid auth response: {$reason}");
             } else {
                 $valid = true;
             }
