@@ -1245,10 +1245,7 @@ class Provider extends \MapasCulturais\AuthProvider {
             $cpf = str_replace(".","",$cpf); // remove "."
 
             // generate the token hash
-            $source = rand(3333, 8888);
-            $cut = rand(10, 30);
-            $string = $this->hashPassword($source);
-            $token = substr($string, $cut, 20);
+            $token = $this->generateAccountValidationToken();
 
             // Oauth pattern
             $response = [
@@ -1273,8 +1270,6 @@ class Provider extends \MapasCulturais\AuthProvider {
             $user = $this->_createUser($response);
             $app->applyHookBoundTo($this, 'auth.createUser:after', [$user, $response]);
 
-            $baseUrl = $app->getBaseUrl();
-
             if(!$user) {
                 $error['user']['createUser'] = i::__('Não foi possível criar o usuário. Entre em contato com suporte', 'multipleLocal');
 
@@ -1284,34 +1279,7 @@ class Provider extends \MapasCulturais\AuthProvider {
                 ];
             }   
 
-            //ATENÇÃO !! Se for necessario "padronizar" os emails com header/footers, é necessario adapatar o 'mustache', e criar uma mini estrutura de pasta de emails em 'MultipleLocalAuth\views'
-            $mustache = new \Mustache_Engine();
-            $site_name = $app->siteName;
-            $content = $mustache->render(
-                file_get_contents(
-                    __DIR__.
-                    DIRECTORY_SEPARATOR.'views'.
-                    DIRECTORY_SEPARATOR.'auth'.
-                    DIRECTORY_SEPARATOR.'email-to-validate-account.html'
-                ), array(
-                    "siteName" => $site_name,
-                    "user" => $user->profile->name,
-                    "urlToValidateAccount" =>  $baseUrl.'auth/confirma-email?token='.$token,
-                    "baseUrl" => $baseUrl,
-                    "urlSupportChat" => $this->_config['urlSupportChat'],
-                    "urlSupportEmail" => $this->_config['urlSupportEmail'],
-                    "urlSupportSite" => $this->_config['urlSupportSite'],
-                    "textSupportSite" => $this->_config['textSupportSite'],
-                    "urlImageToUseInEmails" => $this->getImageImageURl(),
-                )
-            );
-
-            $app->createAndSendMailMessage([
-                'from' => $app->config['mailer.from'],
-                'to' => $user->email,
-                'subject' => "Bem-vindo ao ".$site_name,
-                'body' => $content
-            ]);
+            $this->sendAccountValidationEmail($user, $token);
 
             $app->disableAccessControl();
             $user->{self::$passMetaName} = $app->auth->hashPassword($pass); 
@@ -1355,6 +1323,61 @@ class Provider extends \MapasCulturais\AuthProvider {
             $app = App::i();
             return $app->view->asset('img/mail-image.png', false);
         }
+    }
+
+    /**
+     * Gera o token usado no link de validação de conta
+     *
+     * @return string
+     */
+    protected function generateAccountValidationToken() {
+        $source = rand(3333, 8888);
+        $cut = rand(10, 30);
+        $string = $this->hashPassword($source);
+
+        return substr($string, $cut, 20);
+    }
+
+    /**
+     * Monta e envia ao usuário o e-mail com o link de validação de conta
+     *
+     * @param Entities\User $user usuário destinatário
+     * @param string $token token de validação
+     * @return bool true se o e-mail foi enviado
+     */
+    protected function sendAccountValidationEmail(Entities\User $user, $token) {
+        $app = App::i();
+
+        $baseUrl = $app->getBaseUrl();
+        $site_name = $app->siteName;
+
+        //ATENÇÃO !! Se for necessario "padronizar" os emails com header/footers, é necessario adapatar o 'mustache', e criar uma mini estrutura de pasta de emails em 'MultipleLocalAuth\views'
+        $mustache = new \Mustache_Engine();
+        $content = $mustache->render(
+            file_get_contents(
+                __DIR__.
+                DIRECTORY_SEPARATOR.'views'.
+                DIRECTORY_SEPARATOR.'auth'.
+                DIRECTORY_SEPARATOR.'email-to-validate-account.html'
+            ), array(
+                "siteName" => $site_name,
+                "user" => $user->profile->name,
+                "urlToValidateAccount" =>  $baseUrl.'auth/confirma-email?token='.$token,
+                "baseUrl" => $baseUrl,
+                "urlSupportChat" => $this->_config['urlSupportChat'],
+                "urlSupportEmail" => $this->_config['urlSupportEmail'],
+                "urlSupportSite" => $this->_config['urlSupportSite'],
+                "textSupportSite" => $this->_config['textSupportSite'],
+                "urlImageToUseInEmails" => $this->getImageImageURl(),
+            )
+        );
+
+        return (bool) $app->createAndSendMailMessage([
+            'from' => $app->config['mailer.from'],
+            'to' => $user->email,
+            'subject' => "Bem-vindo ao ".$site_name,
+            'body' => $content
+        ]);
     }
     
     
