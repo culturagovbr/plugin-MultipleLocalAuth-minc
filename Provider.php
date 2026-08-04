@@ -1379,8 +1379,61 @@ class Provider extends \MapasCulturais\AuthProvider {
             'body' => $content
         ]);
     }
-    
-    
+
+    /**
+     * Este provedor valida a conta por e-mail quando a confirmação é exigida
+     *
+     * @return bool
+     */
+    function supportsAccountValidation() {
+        return (bool) ($this->_config['userMustConfirmEmailToUseTheSystem'] ?? false);
+    }
+
+    /**
+     * A conta é considerada validada exceto quando o metadado accountIsActive é '0'
+     *
+     * A comparação reproduz a regra aplicada no login (veja doLogin): usuários sem o
+     * metadado, anteriores à validação por e-mail, não são bloqueados e portanto não
+     * estão pendentes de validação.
+     *
+     * @param Entities\User $user
+     * @return bool
+     */
+    function isAccountValidated(Entities\User $user) {
+        return $user->getMetadata(self::$accountIsActiveMetadata) !== '0';
+    }
+
+    /**
+     * Reenvia ao usuário o e-mail com o link de validação de conta
+     *
+     * Reaproveita o token existente para não invalidar links já enviados e gera um
+     * novo apenas quando o usuário ainda não tem token.
+     *
+     * @param Entities\User $user
+     * @return bool true se o e-mail foi enviado
+     */
+    function resendAccountValidationEmail(Entities\User $user) {
+        $app = App::i();
+
+        if (!$user->email) {
+            return false;
+        }
+
+        $token = $user->getMetadata(self::$tokenVerifyAccountMetadata);
+
+        if (!$token) {
+            $token = $this->generateAccountValidationToken();
+
+            $app->disableAccessControl();
+            $user->setMetadata(self::$tokenVerifyAccountMetadata, $token);
+            $user->saveMetadata(true);
+            $app->enableAccessControl();
+        }
+
+        return $this->sendAccountValidationEmail($user, $token);
+    }
+
+
     /********************************************************************************/
     /***************************** OPAUTH METHODS  **********************************/
     /********************************************************************************/
