@@ -124,6 +124,44 @@ Você pode adicionar ou remover estratégias conforme necessário; qualquer estr
 - `POST auth.changepassword` / `POST auth.newpassword`: alteração de senha logado ou via token.
 - `POST auth.adminchangeuseremail` / `POST auth.adminchangeuserpassword`: rotinas administrativas (acessos protegidos).
 - `GET auth.passwordvalidationinfos`: retorna as regras de senha atuais para o front-end.
+- `GET|POST auth.govbr-email`: coleta e-mail alternativo quando o e-mail do Gov.br já está em uso (criação de conta).
+
+## Testes
+
+### Suíte integrada
+
+Testes que exercitam o `Provider` precisam do core carregado, e por isso rodam na stack de testes do repositório principal com um override que define este plugin como provedor de autenticação. Os comandos abaixo são executados a partir de `tests/` do repositório principal.
+
+```bash
+cd tests
+
+# build (necessário na primeira vez ou após mudanças no Dockerfile/composer)
+docker compose build
+
+# suíte inteira do plugin
+docker compose -f docker-compose.yml -f ../src/plugins/MultipleLocalAuth/tests/docker-compose.yml \
+  run --rm mapas pu /var/www/tests/MultipleLocalAuth
+
+# um arquivo
+docker compose -f docker-compose.yml -f ../src/plugins/MultipleLocalAuth/tests/docker-compose.yml \
+  run --rm mapas pu /var/www/tests/MultipleLocalAuth/SmokeTest.php
+
+# um método
+docker compose -f docker-compose.yml -f ../src/plugins/MultipleLocalAuth/tests/docker-compose.yml \
+  run --rm mapas pu /var/www/tests/MultipleLocalAuth/SmokeTest.php --filter "nomeDoMetodo"
+```
+
+O override troca apenas `auth.provider` e `auth.config`; o plugin já consta na lista base de plugins. Aponte o `pu` sempre para `/var/www/tests/MultipleLocalAuth` — apontar para `/var/www/tests` rodaria também os testes do core, que assumem o provedor de teste padrão.
+
+### Testes unitários isolados
+
+Regras de conta Gov.br (CPF / e-mail único) não dependem do core e têm testes próprios em `tests/`:
+
+```bash
+cd plugins/MultipleLocalAuth
+php composer.phar install   # ou: composer install
+./vendor/bin/phpunit tests/GovBrAccountServiceTest.php
+```
 
 ## Componentes que acompanham o plugin
 - `components/login`: formulário de login com reCAPTCHA, recuperação de senha e botões sociais.
